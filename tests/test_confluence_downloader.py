@@ -279,6 +279,26 @@ class TestProcessPage:
         assert stats["skipped"] == 1
         assert stats["saved"] == 0
 
+    def test_skips_empty_content(self, tmp_path):
+        page = {"id": "1", "title": "Empty", "body": {"storage": {"value": ""}}}
+        session = self._mock(page)
+        stats = {"saved": 0, "skipped": 0}
+        cd.process_page(session, "https://conf.example.com", "1", str(tmp_path), 0, stats)
+        assert stats["saved"] == 0
+        assert not list(tmp_path.glob("*.md"))
+
+    def test_empty_content_still_recurses_children(self, tmp_path):
+        page = {"id": "1", "title": "Empty Parent", "body": {"storage": {"value": ""}}}
+        session = self._mock(
+            page,
+            {"results": [{"id": "2", "title": "Child"}]},
+            self._page("2", "Child"),
+        )
+        stats = {"saved": 0, "skipped": 0}
+        cd.process_page(session, "https://conf.example.com", "1", str(tmp_path), 1, stats)
+        assert stats["saved"] == 1
+        assert (tmp_path / "Empty_Parent" / "Child_2.md").exists()
+
     def test_child_pages_saved_in_subdirectory(self, tmp_path):
         session = self._mock(
             self._page("1", "Parent"),

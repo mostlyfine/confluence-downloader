@@ -111,11 +111,14 @@ def process_page(
         title = page["title"]
         html = page["body"]["storage"]["value"]
         markdown = html_to_markdown(html)
-        path = save_markdown(output_dir, title, page_id, markdown)
-        print(f"[INFO] Saved: {path}")
-        stats["saved"] += 1
-        if wait:
-            time.sleep(wait)
+        if markdown.strip():
+            path = save_markdown(output_dir, title, page_id, markdown)
+            print(f"[INFO] Saved: {path}")
+            stats["saved"] += 1
+            if wait:
+                time.sleep(wait)
+        else:
+            print(f"[INFO] Skipped (empty content): {page_id}")
 
         if depth > 0:
             children = fetch_children(session, base_url, page_id)
