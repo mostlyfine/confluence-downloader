@@ -89,3 +89,30 @@ class TestGetAuthHeaders:
     def test_server_no_email_needed(self):
         headers = cd.get_auth_headers("https://internal.company.com/confluence", "pat-token")
         assert headers["Authorization"] == "Bearer pat-token"
+
+
+class TestHtmlToMarkdown:
+    def test_converts_paragraph(self):
+        result = cd.html_to_markdown("<p>Hello world</p>")
+        assert "Hello world" in result
+
+    def test_converts_heading(self):
+        result = cd.html_to_markdown("<h1>Title</h1>")
+        assert "# Title" in result
+
+    def test_converts_bold(self):
+        result = cd.html_to_markdown("<strong>bold</strong>")
+        assert "**bold**" in result
+
+    def test_converts_link(self):
+        result = cd.html_to_markdown('<a href="https://example.com">link</a>')
+        assert "[link](https://example.com)" in result
+
+    def test_converts_code_block(self):
+        result = cd.html_to_markdown("<pre><code>print('hi')</code></pre>")
+        assert "print('hi')" in result
+
+    def test_converts_table(self):
+        html = "<table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table>"
+        result = cd.html_to_markdown(html)
+        assert "A" in result and "1" in result

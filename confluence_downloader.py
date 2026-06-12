@@ -39,6 +39,10 @@ def parse_config(filepath: str) -> list[dict]:
     return entries
 
 
+def html_to_markdown(html: str) -> str:
+    return md(html, heading_style="ATX", bullets="-")
+
+
 def get_auth_headers(base_url: str, token: str, email: str | None = None) -> dict:
     if "atlassian.net" in base_url:
         credentials = base64.b64encode(f"{email}:{token}".encode()).decode()
