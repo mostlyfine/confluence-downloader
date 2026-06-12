@@ -43,3 +43,23 @@ class TestParseConfig:
         result = cd.parse_config(str(config))
         assert len(result) == 2
         assert result[1] == {"page_id": "2222", "output_dir": "out2", "depth": 3}
+
+
+class TestSanitizeFilename:
+    def test_replaces_spaces_with_underscore(self):
+        assert cd.sanitize_filename("My Page") == "My_Page"
+
+    def test_replaces_slashes(self):
+        assert cd.sanitize_filename("a/b\\c") == "a_b_c"
+
+    def test_replaces_special_chars(self):
+        assert cd.sanitize_filename('a:b*c?d"e<f>g|h') == "a_b_c_d_e_f_g_h"
+
+    def test_normal_name_unchanged(self):
+        assert cd.sanitize_filename("MyPage") == "MyPage"
+
+    def test_leading_trailing_underscores_stripped(self):
+        assert cd.sanitize_filename(" Page ") == "Page"
+
+    def test_consecutive_special_chars_become_single_underscore(self):
+        assert cd.sanitize_filename("a  b") == "a_b"

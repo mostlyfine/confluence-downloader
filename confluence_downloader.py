@@ -39,5 +39,9 @@ def parse_config(filepath: str) -> list[dict]:
     return entries
 
 
+def sanitize_filename(name: str) -> str:
+    return re.sub(r'[\\/:*?"<>|\s]+', "_", name).strip("_")
+
+
 if __name__ == "__main__":
     pass
