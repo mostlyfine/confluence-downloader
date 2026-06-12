@@ -1,3 +1,4 @@
 page_id,output_dir,depth
 1791827,output,0
+# depth is optional — defaults to 0 (fetch this page only)
 198794,output/PRD
