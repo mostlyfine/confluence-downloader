@@ -13,6 +13,7 @@ import csv
 import os
 import re
 import sys
+import time
 from pathlib import Path
 
 import requests
@@ -103,6 +104,7 @@ def process_page(
     output_dir: str,
     depth: int,
     stats: dict,
+    wait: float = 0.0,
 ) -> None:
     try:
         page = fetch_page(session, base_url, page_id)
@@ -112,12 +114,14 @@ def process_page(
         path = save_markdown(output_dir, title, page_id, markdown)
         print(f"[INFO] Saved: {path}")
         stats["saved"] += 1
+        if wait:
+            time.sleep(wait)
 
         if depth > 0:
             children = fetch_children(session, base_url, page_id)
             child_dir = str(Path(output_dir) / sanitize_filename(title))
             for child in children:
-                process_page(session, base_url, child["id"], child_dir, depth - 1, stats)
+                process_page(session, base_url, child["id"], child_dir, depth - 1, stats, wait)
     except requests.HTTPError as e:
         print(f"[WARN] Failed to fetch page {page_id}: {e}, skipping", file=sys.stderr)
         stats["skipped"] += 1
@@ -129,6 +133,8 @@ def process_page(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Download Confluence pages as Markdown")
     parser.add_argument("config", help="Path to CSV config file")
+    parser.add_argument("--wait", type=float, default=1.0, metavar="SECONDS",
+                        help="Seconds to wait between page downloads (default: 1.0)")
     args = parser.parse_args()
 
     base_url = os.environ.get("CONFLUENCE_URL", "").rstrip("/")
@@ -161,7 +167,7 @@ def main() -> None:
 
     for entry in entries:
         print(f"[INFO] Fetching page: {entry['page_id']}")
-        process_page(session, base_url, entry["page_id"], entry["output_dir"], entry["depth"], stats)
+        process_page(session, base_url, entry["page_id"], entry["output_dir"], entry["depth"], stats, args.wait)
 
     print(f"[INFO] Done. {stats['saved']} pages saved, {stats['skipped']} skipped.")
 
