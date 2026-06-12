@@ -288,4 +288,4 @@ class TestProcessPage:
         )
         stats = {"saved": 0, "skipped": 0}
         cd.process_page(session, "https://conf.example.com", "1", str(tmp_path), 1, stats)
-        assert (tmp_path / "Parent_1" / "Child_2.md").exists()
+        assert (tmp_path / "Parent" / "Child_2.md").exists()

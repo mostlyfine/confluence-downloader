@@ -114,7 +114,7 @@ def process_page(
 
         if depth > 0:
             children = fetch_children(session, base_url, page_id)
-            child_dir = str(Path(output_dir) / f"{sanitize_filename(title)}_{page_id}")
+            child_dir = str(Path(output_dir) / sanitize_filename(title))
             for child in children:
                 process_page(session, base_url, child["id"], child_dir, depth - 1, stats)
     except requests.HTTPError as e:
