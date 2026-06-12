@@ -30,7 +30,7 @@ def parse_config(filepath: str) -> list[dict]:
             output_dir = row.get("output_dir", "").strip()
             if not output_dir:
                 continue
-            raw_depth = row.get("depth", "").strip() if row.get("depth") else ""
+            raw_depth = (row.get("depth") or "").strip()
             try:
                 depth = int(raw_depth) if raw_depth else 0
             except ValueError:
@@ -58,9 +58,10 @@ def sanitize_filename(name: str) -> str:
 
 
 def save_markdown(output_dir: str, title: str, page_id: str, content: str) -> str:
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
     filename = f"{sanitize_filename(title)}_{sanitize_filename(page_id)}.md"
-    filepath = Path(output_dir) / filename
+    filepath = output_path / filename
     filepath.write_text(content, encoding="utf-8")
     return str(filepath)
 
@@ -151,7 +152,7 @@ def main() -> None:
         sys.exit(1)
 
     entries = parse_config(args.config)
-    headers = get_auth_headers(base_url, token, email or None)
+    headers = get_auth_headers(base_url, token, email)
 
     session = requests.Session()
     session.headers.update(headers)

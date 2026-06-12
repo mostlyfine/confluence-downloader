@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import confluence_downloader as cd
@@ -94,7 +96,6 @@ class TestGetAuthHeaders:
         assert headers["Authorization"] == "Bearer pat-token"
 
     def test_cloud_raises_without_email(self):
-        import pytest
         with pytest.raises(ValueError, match="CONFLUENCE_EMAIL"):
             cd.get_auth_headers("https://mysite.atlassian.net", "token", None)
 
@@ -180,7 +181,6 @@ class TestFetchPage:
         assert "/rest/api/content/1" in call_url
 
     def test_raises_on_http_error(self):
-        import pytest
         session = MagicMock()
         session.get.return_value.raise_for_status.side_effect = _req.HTTPError("404")
         with pytest.raises(_req.HTTPError):
@@ -211,7 +211,6 @@ class TestFetchChildren:
     def test_raises_on_http_error(self):
         session = MagicMock()
         session.get.return_value.raise_for_status.side_effect = _req.HTTPError("500")
-        import pytest
         with pytest.raises(_req.HTTPError):
             cd.fetch_children(session, "https://conf.example.com", "1234")
 
