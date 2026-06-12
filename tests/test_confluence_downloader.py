@@ -1,10 +1,12 @@
 import base64 as _base64
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import confluence_downloader as cd
+import requests as _req
 
 
 class TestParseConfig:
@@ -141,3 +143,75 @@ class TestSaveMarkdown:
     def test_sanitizes_title_in_filename(self, tmp_path):
         path = cd.save_markdown(str(tmp_path), "My: Page/Title", "42", "x")
         assert Path(path).name == "My_Page_Title_42.md"
+
+
+class TestFetchPage:
+    def test_fetches_page_content(self):
+        session = MagicMock()
+        session.get.return_value.json.return_value = {
+            "id": "1234",
+            "title": "My Page",
+            "body": {"storage": {"value": "<p>Hello</p>"}},
+        }
+        session.get.return_value.raise_for_status = MagicMock()
+        result = cd.fetch_page(session, "https://conf.example.com", "1234")
+        assert result["title"] == "My Page"
+        assert result["body"]["storage"]["value"] == "<p>Hello</p>"
+
+    def test_uses_wiki_prefix_for_cloud(self):
+        session = MagicMock()
+        session.get.return_value.json.return_value = {
+            "id": "1", "title": "T", "body": {"storage": {"value": ""}},
+        }
+        session.get.return_value.raise_for_status = MagicMock()
+        cd.fetch_page(session, "https://mysite.atlassian.net", "1")
+        call_url = session.get.call_args[0][0]
+        assert "/wiki/rest/api/content/1" in call_url
+
+    def test_no_wiki_prefix_for_server(self):
+        session = MagicMock()
+        session.get.return_value.json.return_value = {
+            "id": "1", "title": "T", "body": {"storage": {"value": ""}},
+        }
+        session.get.return_value.raise_for_status = MagicMock()
+        cd.fetch_page(session, "https://conf.example.com", "1")
+        call_url = session.get.call_args[0][0]
+        assert "/wiki/" not in call_url
+        assert "/rest/api/content/1" in call_url
+
+    def test_raises_on_http_error(self):
+        session = MagicMock()
+        session.get.return_value.raise_for_status.side_effect = _req.HTTPError("404")
+        try:
+            cd.fetch_page(session, "https://conf.example.com", "9999")
+            assert False, "Should have raised HTTPError"
+        except _req.HTTPError:
+            pass
+
+
+class TestFetchChildren:
+    def test_returns_children(self):
+        session = MagicMock()
+        session.get.return_value.json.return_value = {
+            "results": [{"id": "111", "title": "Child A"}, {"id": "222", "title": "Child B"}],
+        }
+        session.get.return_value.raise_for_status = MagicMock()
+        result = cd.fetch_children(session, "https://conf.example.com", "1234")
+        assert len(result) == 2
+        assert result[0]["id"] == "111"
+
+    def test_paginates_when_full_page(self):
+        session = MagicMock()
+        page1 = {"results": [{"id": str(i), "title": f"P{i}"} for i in range(25)]}
+        page2 = {"results": [{"id": "99", "title": "Last"}]}
+        session.get.return_value.json.side_effect = [page1, page2]
+        session.get.return_value.raise_for_status = MagicMock()
+        result = cd.fetch_children(session, "https://conf.example.com", "1234")
+        assert len(result) == 26
+
+    def test_returns_empty_list_when_no_children(self):
+        session = MagicMock()
+        session.get.return_value.json.return_value = {"results": []}
+        session.get.return_value.raise_for_status = MagicMock()
+        result = cd.fetch_children(session, "https://conf.example.com", "1234")
+        assert result == []

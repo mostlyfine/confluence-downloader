@@ -65,5 +65,33 @@ def save_markdown(output_dir: str, title: str, page_id: str, content: str) -> st
     return str(filepath)
 
 
+def _api_prefix(base_url: str) -> str:
+    return "/wiki" if "atlassian.net" in base_url else ""
+
+
+def fetch_page(session: requests.Session, base_url: str, page_id: str) -> dict:
+    url = f"{base_url.rstrip('/')}{_api_prefix(base_url)}/rest/api/content/{page_id}"
+    response = session.get(url, params={"expand": "body.storage"})
+    response.raise_for_status()
+    return response.json()
+
+
+def fetch_children(session: requests.Session, base_url: str, page_id: str) -> list[dict]:
+    url = f"{base_url.rstrip('/')}{_api_prefix(base_url)}/rest/api/content/{page_id}/child/page"
+    children = []
+    start = 0
+    limit = 25
+    while True:
+        response = session.get(url, params={"start": start, "limit": limit})
+        response.raise_for_status()
+        data = response.json()
+        results = data.get("results", [])
+        children.extend(results)
+        if len(results) < limit:
+            break
+        start += limit
+    return children
+
+
 if __name__ == "__main__":
     pass
