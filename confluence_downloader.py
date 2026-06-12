@@ -54,5 +54,13 @@ def sanitize_filename(name: str) -> str:
     return re.sub(r'[\\/:*?"<>|\s]+', "_", name).strip("_")
 
 
+def save_markdown(output_dir: str, title: str, page_id: str, content: str) -> str:
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    filename = f"{sanitize_filename(title)}_{page_id}.md"
+    filepath = Path(output_dir) / filename
+    filepath.write_text(content, encoding="utf-8")
+    return str(filepath)
+
+
 if __name__ == "__main__":
     pass

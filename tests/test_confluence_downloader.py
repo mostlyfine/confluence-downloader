@@ -116,3 +116,22 @@ class TestHtmlToMarkdown:
         html = "<table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table>"
         result = cd.html_to_markdown(html)
         assert "A" in result and "1" in result
+
+
+class TestSaveMarkdown:
+    def test_creates_file_with_correct_name(self, tmp_path):
+        path = cd.save_markdown(str(tmp_path), "My Page", "1234", "# Content")
+        assert Path(path).name == "My_Page_1234.md"
+
+    def test_writes_content_to_file(self, tmp_path):
+        path = cd.save_markdown(str(tmp_path), "Page", "99", "# Hello")
+        assert Path(path).read_text(encoding="utf-8") == "# Hello"
+
+    def test_creates_output_directory_if_missing(self, tmp_path):
+        out = str(tmp_path / "deep" / "dir")
+        path = cd.save_markdown(out, "Page", "1", "content")
+        assert Path(path).exists()
+
+    def test_sanitizes_title_in_filename(self, tmp_path):
+        path = cd.save_markdown(str(tmp_path), "My: Page/Title", "42", "x")
+        assert Path(path).name == "My_Page_Title_42.md"
