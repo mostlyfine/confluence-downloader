@@ -125,5 +125,45 @@ def process_page(
         stats["skipped"] += 1
 
 
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Download Confluence pages as Markdown")
+    parser.add_argument("config", help="Path to CSV config file")
+    args = parser.parse_args()
+
+    base_url = os.environ.get("CONFLUENCE_URL", "").rstrip("/")
+    token = os.environ.get("CONFLUENCE_API_TOKEN", "")
+    email = os.environ.get("CONFLUENCE_EMAIL", "")
+
+    errors = []
+    if not base_url:
+        errors.append("CONFLUENCE_URL is not set")
+    if not token:
+        errors.append("CONFLUENCE_API_TOKEN is not set")
+    if "atlassian.net" in base_url and not email:
+        errors.append("CONFLUENCE_EMAIL is required for Confluence Cloud")
+    if errors:
+        for e in errors:
+            print(f"[ERROR] {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if not Path(args.config).exists():
+        print(f"[ERROR] Config file not found: {args.config}", file=sys.stderr)
+        sys.exit(1)
+
+    entries = parse_config(args.config)
+    headers = get_auth_headers(base_url, token, email or None)
+
+    session = requests.Session()
+    session.headers.update(headers)
+
+    stats = {"saved": 0, "skipped": 0}
+
+    for entry in entries:
+        print(f"[INFO] Fetching page: {entry['page_id']}")
+        process_page(session, base_url, entry["page_id"], entry["output_dir"], entry["depth"], stats)
+
+    print(f"[INFO] Done. {stats['saved']} pages saved, {stats['skipped']} skipped.")
+
+
 if __name__ == "__main__":
-    pass
+    main()
