@@ -2,8 +2,8 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-#   "requests",
-#   "markdownify",
+#   "requests==2.32.3",
+#   "markdownify==1.2.0",
 # ]
 # ///
 
