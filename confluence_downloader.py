@@ -115,10 +115,9 @@ def process_page(
             path = save_markdown(output_dir, title, page_id, markdown)
             print(f"[INFO] Saved: {path}")
             stats["saved"] += 1
-            if wait:
-                time.sleep(wait)
         else:
             print(f"[INFO] Skipped (empty content): {page_id}")
+        time.sleep(wait)
 
         if depth > 0:
             children = fetch_children(session, base_url, page_id)
