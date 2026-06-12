@@ -39,6 +39,13 @@ def parse_config(filepath: str) -> list[dict]:
     return entries
 
 
+def get_auth_headers(base_url: str, token: str, email: str | None = None) -> dict:
+    if "atlassian.net" in base_url:
+        credentials = base64.b64encode(f"{email}:{token}".encode()).decode()
+        return {"Authorization": f"Basic {credentials}"}
+    return {"Authorization": f"Bearer {token}"}
+
+
 def sanitize_filename(name: str) -> str:
     return re.sub(r'[\\/:*?"<>|\s]+', "_", name).strip("_")
 

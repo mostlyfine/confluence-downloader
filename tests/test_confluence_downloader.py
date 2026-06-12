@@ -63,3 +63,29 @@ class TestSanitizeFilename:
 
     def test_consecutive_special_chars_become_single_underscore(self):
         assert cd.sanitize_filename("a  b") == "a_b"
+
+
+import base64 as _base64
+
+
+class TestGetAuthHeaders:
+    def test_server_returns_bearer_token(self):
+        headers = cd.get_auth_headers("https://conf.example.com", "my-pat")
+        assert headers == {"Authorization": "Bearer my-pat"}
+
+    def test_cloud_returns_basic_auth(self):
+        headers = cd.get_auth_headers(
+            "https://mysite.atlassian.net", "my-token", "user@example.com"
+        )
+        expected = _base64.b64encode(b"user@example.com:my-token").decode()
+        assert headers == {"Authorization": f"Basic {expected}"}
+
+    def test_cloud_detection_by_atlassian_net(self):
+        headers = cd.get_auth_headers(
+            "https://example.atlassian.net/wiki", "tok", "a@b.com"
+        )
+        assert headers["Authorization"].startswith("Basic ")
+
+    def test_server_no_email_needed(self):
+        headers = cd.get_auth_headers("https://internal.company.com/confluence", "pat-token")
+        assert headers["Authorization"] == "Bearer pat-token"
