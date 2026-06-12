@@ -232,3 +232,60 @@ class TestApiPrefix:
 
     def test_no_double_wiki_if_already_present(self):
         assert cd._api_prefix("https://mysite.atlassian.net/wiki") == ""
+
+
+class TestProcessPage:
+    def _page(self, pid, title):
+        return {"id": pid, "title": title, "body": {"storage": {"value": f"<p>{title}</p>"}}}
+
+    def _mock(self, *responses):
+        session = MagicMock()
+        mocks = []
+        for data in responses:
+            m = MagicMock()
+            m.json.return_value = data
+            m.raise_for_status = MagicMock()
+            mocks.append(m)
+        session.get.side_effect = mocks
+        return session
+
+    def test_saves_page_file(self, tmp_path):
+        session = self._mock(self._page("1234", "My Page"))
+        stats = {"saved": 0, "skipped": 0}
+        cd.process_page(session, "https://conf.example.com", "1234", str(tmp_path), 0, stats)
+        assert (tmp_path / "My_Page_1234.md").exists()
+        assert stats["saved"] == 1
+
+    def test_depth_zero_does_not_fetch_children(self, tmp_path):
+        session = self._mock(self._page("1", "P"))
+        stats = {"saved": 0, "skipped": 0}
+        cd.process_page(session, "https://conf.example.com", "1", str(tmp_path), 0, stats)
+        assert session.get.call_count == 1
+
+    def test_depth_one_recurses_into_children(self, tmp_path):
+        session = self._mock(
+            self._page("1", "Parent"),
+            {"results": [{"id": "2", "title": "Child"}]},
+            self._page("2", "Child"),
+        )
+        stats = {"saved": 0, "skipped": 0}
+        cd.process_page(session, "https://conf.example.com", "1", str(tmp_path), 1, stats)
+        assert stats["saved"] == 2
+
+    def test_skips_page_on_http_error(self, tmp_path):
+        session = MagicMock()
+        session.get.return_value.raise_for_status.side_effect = _req.HTTPError("404")
+        stats = {"saved": 0, "skipped": 0}
+        cd.process_page(session, "https://conf.example.com", "9999", str(tmp_path), 0, stats)
+        assert stats["skipped"] == 1
+        assert stats["saved"] == 0
+
+    def test_child_pages_saved_in_subdirectory(self, tmp_path):
+        session = self._mock(
+            self._page("1", "Parent"),
+            {"results": [{"id": "2", "title": "Child"}]},
+            self._page("2", "Child"),
+        )
+        stats = {"saved": 0, "skipped": 0}
+        cd.process_page(session, "https://conf.example.com", "1", str(tmp_path), 1, stats)
+        assert (tmp_path / "Parent_1" / "Child_2.md").exists()

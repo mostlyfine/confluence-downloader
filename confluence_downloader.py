@@ -95,5 +95,35 @@ def fetch_children(session: requests.Session, base_url: str, page_id: str) -> li
     return children
 
 
+def process_page(
+    session: requests.Session,
+    base_url: str,
+    page_id: str,
+    output_dir: str,
+    depth: int,
+    stats: dict,
+) -> None:
+    try:
+        page = fetch_page(session, base_url, page_id)
+        title = page["title"]
+        html = page["body"]["storage"]["value"]
+        markdown = html_to_markdown(html)
+        path = save_markdown(output_dir, title, page_id, markdown)
+        print(f"[INFO] Saved: {path}")
+        stats["saved"] += 1
+
+        if depth > 0:
+            children = fetch_children(session, base_url, page_id)
+            child_dir = str(Path(output_dir) / f"{sanitize_filename(title)}_{page_id}")
+            for child in children:
+                process_page(session, base_url, child["id"], child_dir, depth - 1, stats)
+    except requests.HTTPError as e:
+        print(f"[WARN] Failed to fetch page {page_id}: {e}, skipping", file=sys.stderr)
+        stats["skipped"] += 1
+    except requests.RequestException as e:
+        print(f"[WARN] Network error for page {page_id}: {e}, skipping", file=sys.stderr)
+        stats["skipped"] += 1
+
+
 if __name__ == "__main__":
     pass
