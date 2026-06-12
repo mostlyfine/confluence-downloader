@@ -1,3 +1,4 @@
+import base64 as _base64
 import sys
 from pathlib import Path
 
@@ -64,8 +65,8 @@ class TestSanitizeFilename:
     def test_consecutive_special_chars_become_single_underscore(self):
         assert cd.sanitize_filename("a  b") == "a_b"
 
-
-import base64 as _base64
+    def test_all_special_chars_returns_untitled(self):
+        assert cd.sanitize_filename("???") == "untitled"
 
 
 class TestGetAuthHeaders:
@@ -89,6 +90,11 @@ class TestGetAuthHeaders:
     def test_server_no_email_needed(self):
         headers = cd.get_auth_headers("https://internal.company.com/confluence", "pat-token")
         assert headers["Authorization"] == "Bearer pat-token"
+
+    def test_cloud_raises_without_email(self):
+        import pytest
+        with pytest.raises(ValueError, match="CONFLUENCE_EMAIL"):
+            cd.get_auth_headers("https://mysite.atlassian.net", "token", None)
 
 
 class TestHtmlToMarkdown:

@@ -45,18 +45,21 @@ def html_to_markdown(html: str) -> str:
 
 def get_auth_headers(base_url: str, token: str, email: str | None = None) -> dict:
     if "atlassian.net" in base_url:
+        if not email:
+            raise ValueError("CONFLUENCE_EMAIL is required for Confluence Cloud (atlassian.net)")
         credentials = base64.b64encode(f"{email}:{token}".encode()).decode()
         return {"Authorization": f"Basic {credentials}"}
     return {"Authorization": f"Bearer {token}"}
 
 
 def sanitize_filename(name: str) -> str:
-    return re.sub(r'[\\/:*?"<>|\s]+', "_", name).strip("_")
+    result = re.sub(r'[\\/:*?"<>|\s]+', "_", name).strip("_")
+    return result or "untitled"
 
 
 def save_markdown(output_dir: str, title: str, page_id: str, content: str) -> str:
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    filename = f"{sanitize_filename(title)}_{page_id}.md"
+    filename = f"{sanitize_filename(title)}_{sanitize_filename(page_id)}.md"
     filepath = Path(output_dir) / filename
     filepath.write_text(content, encoding="utf-8")
     return str(filepath)
