@@ -66,7 +66,9 @@ def save_markdown(output_dir: str, title: str, page_id: str, content: str) -> st
 
 
 def _api_prefix(base_url: str) -> str:
-    return "/wiki" if "atlassian.net" in base_url else ""
+    if "atlassian.net" not in base_url:
+        return ""
+    return "" if "/wiki" in base_url else "/wiki"
 
 
 def fetch_page(session: requests.Session, base_url: str, page_id: str) -> dict:

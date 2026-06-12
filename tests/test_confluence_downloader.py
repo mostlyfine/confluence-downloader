@@ -180,13 +180,11 @@ class TestFetchPage:
         assert "/rest/api/content/1" in call_url
 
     def test_raises_on_http_error(self):
+        import pytest
         session = MagicMock()
         session.get.return_value.raise_for_status.side_effect = _req.HTTPError("404")
-        try:
+        with pytest.raises(_req.HTTPError):
             cd.fetch_page(session, "https://conf.example.com", "9999")
-            assert False, "Should have raised HTTPError"
-        except _req.HTTPError:
-            pass
 
 
 class TestFetchChildren:
@@ -208,6 +206,14 @@ class TestFetchChildren:
         session.get.return_value.raise_for_status = MagicMock()
         result = cd.fetch_children(session, "https://conf.example.com", "1234")
         assert len(result) == 26
+        assert session.get.call_count == 2
+
+    def test_raises_on_http_error(self):
+        session = MagicMock()
+        session.get.return_value.raise_for_status.side_effect = _req.HTTPError("500")
+        import pytest
+        with pytest.raises(_req.HTTPError):
+            cd.fetch_children(session, "https://conf.example.com", "1234")
 
     def test_returns_empty_list_when_no_children(self):
         session = MagicMock()
@@ -215,3 +221,14 @@ class TestFetchChildren:
         session.get.return_value.raise_for_status = MagicMock()
         result = cd.fetch_children(session, "https://conf.example.com", "1234")
         assert result == []
+
+
+class TestApiPrefix:
+    def test_returns_wiki_for_cloud(self):
+        assert cd._api_prefix("https://mysite.atlassian.net") == "/wiki"
+
+    def test_returns_empty_for_server(self):
+        assert cd._api_prefix("https://conf.example.com") == ""
+
+    def test_no_double_wiki_if_already_present(self):
+        assert cd._api_prefix("https://mysite.atlassian.net/wiki") == ""
